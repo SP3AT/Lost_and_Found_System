@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card"><h1>Report an item</h1><p class="muted">Share enough information to help identify the item.</p><form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<label for="item_type">Report type</label><select id="item_type" name="item_type" required><option value="lost">Lost</option><option value="found">Found</option></select>
+<label for="title">Item name</label><input id="title" name="title" required><label for="category">Category</label><input id="category" name="category" required placeholder="e.g. Keys, electronics, wallet">
+<label for="description">Description</label><textarea id="description" name="description" required></textarea><label for="photo">Photo (optional)</label><input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp"><p class="muted">JPEG, PNG or WebP, up to 5 MB. Visible to signed-in users.</p><label for="location">Location</label><input id="location" name="location" required><label for="date_reported">Date lost or found</label><input id="date_reported" name="date_reported" type="date" required><label for="reporter_contact">Contact information for the admin</label><input id="reporter_contact" name="reporter_contact" required><div class="actions"><button>Post report</button><a class="button secondary" href="{{ url_for('dashboard') }}">Cancel</a></div></form></div>
+{% endblock %}

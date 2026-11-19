@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ 'Admin dashboard' if session.role == 'admin' else 'Lost & found dashboard' }}</h1>
+<p class="muted">{{ 'Review reports and verify ownership claims.' if session.role == 'admin' else 'Browse reports, post an item, or claim a found item.' }}</p>
+{% if session.role == 'user' %}<p><a class="button" href="{{ url_for('report') }}">+ Report an item</a></p>{% endif %}
+<div class="dashboard-layout">
+<nav class="tabs" aria-label="Dashboard sections">
+  <a class="{{ 'active' if tab == 'lost' }}" {% if tab == 'lost' %}aria-current="page"{% endif %} href="{{ url_for('dashboard', tab='lost') }}">Lost / not found</a>
+  <a class="{{ 'active' if tab == 'found' }}" {% if tab == 'found' %}aria-current="page"{% endif %} href="{{ url_for('dashboard', tab='found') }}">Found items</a>
+  <a class="{{ 'active' if tab == 'returned' }}" {% if tab == 'returned' %}aria-current="page"{% endif %} href="{{ url_for('dashboard', tab='returned') }}">Returned</a>
+  <a class="{{ 'active' if tab == 'claims' }}" {% if tab == 'claims' %}aria-current="page"{% endif %} href="{{ url_for('dashboard', tab='claims') }}">{{ 'All claims' if session.role == 'admin' else 'My claims' }}</a>
+</nav>
+<section class="dashboard-content">
+{% if tab != 'claims' %}
+<h2>{{ 'Lost / not found' if tab == 'lost' else 'Found items' if tab == 'found' else 'Returned items' }}</h2>
+{% if tab == 'lost' %}<p class="muted">Lost reports are not automatically matched with found items.</p>{% endif %}
+<form class="card" method="get" action="{{ url_for('dashboard') }}">
+  <input type="hidden" name="tab" value="{{ tab }}">
+  <div class="grid"><div><label for="q">Search items</label><input id="q" name="q" value="{{ search }}" placeholder="Name, description, category or location"></div>
+  {% if tab != 'returned' %}<div><label for="status">Status</label><select id="status" name="status"><option value="">All statuses</option>{% for option in ['Open', 'Pending Verification', 'Claimed'] %}<option value="{{ option }}" {% if status == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>{% endif %}</div>
+  <div class="actions"><button>Search</button><a class="button secondary" href="{{ url_for('dashboard', tab=tab) }}">Clear</a></div>
+</form>
+<div class="grid">{% for item in items %}<article class="card">
+  {% if item.has_photo %}<img class="item-photo" src="{{ url_for('item_photo', item_id=item.id) }}" alt="Photo of {{ item.title }}">{% endif %}
+  <span class="tag">{{ item.item_type|capitalize }}</span> <span class="tag">{{ item.status }}</span><h3>{{ item.title }}</h3><p>{{ item.description }}</p><p class="muted">{{ item.category }} · {{ item.location }} · {{ item.date_reported }}</p><p class="muted">Reported by {{ item.reporter_name }}{% if session.role == 'admin' %} · {{ item.reporter_contact }}{% endif %}</p>
+  {% if session.role == 'user' and item.item_type == 'found' and item.status in ('Open', 'Pending Verification') and item.user_id != session.user_id %}<form method="post" action="{{ url_for('claim', item_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label for="details-{{ item.id }}">Why is this yours?</label><textarea id="details-{{ item.id }}" name="details" placeholder="Provide identifying details for the admin" required></textarea><div class="actions"><button>Submit claim</button></div></form>{% endif %}
+  {% if session.role == 'admin' and item.status == 'Claimed' %}<form method="post" action="{{ url_for('mark_returned', item_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button>Mark returned</button></form>{% endif %}
+</article>{% else %}<p class="muted">No item reports match your search in this tab.</p>{% endfor %}</div>
+{% else %}
+<h2>{{ 'All claims' if session.role == 'admin' else 'My claims' }}</h2>
+{% for claim in claims %}<div class="card"><strong>{{ claim.title }}</strong> <span class="tag">{{ claim.status }}</span><p class="muted">Claim #{{ claim.id }} · {{ claim.created_at }}{% if session.role == 'admin' %} · Submitted by {{ claim.username }}{% endif %}</p><p>{{ claim.details }}</p>
+{% if session.role == 'admin' and claim.status == 'Pending' %}<div class="actions"><form class="inline" method="post" action="{{ url_for('review_claim', claim_id=claim.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button name="decision" value="Approved">Approve</button> <button class="danger" name="decision" value="Rejected">Reject</button></form></div>{% endif %}</div>{% else %}<p class="muted">No claims yet.</p>{% endfor %}
+{% endif %}
+</section>
+</div>
+{% endblock %}
